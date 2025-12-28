@@ -6,6 +6,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import TutorDashboard from './pages/TutorDashboard';
 import SubjectLessons from './pages/SubjectLessons';
 import LessonView from './pages/LessonView';
+import QuizPage from './pages/QuizPage';
 import { User } from '@supabase/supabase-js';
 
 function App() {
@@ -54,6 +55,10 @@ function App() {
         <Route
           path="/lesson/:lessonId"
           element={user ? <LessonView /> : <Navigate to="/auth" />}
+        />
+        <Route
+          path="/quiz/:lessonId"
+          element={user ? <QuizPage /> : <Navigate to="/auth" />}
         />
         <Route path="/" element={<Navigate to={user ? "/dashboard" : "/auth"} />} />
       </Routes>
