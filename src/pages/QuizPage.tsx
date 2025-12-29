@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Volume2, VolumeX, Pause } from 'lucide-react';
+import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 
 interface Exercise {
   question: string;
@@ -27,6 +28,11 @@ export default function QuizPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
+  const { isPlaying, isPaused, speak, pause, resume, stop } = useSpeechSynthesis({
+    rate: 0.9,
+    pitch: 1.1,
+    volume: 1,
+  });
 
   useEffect(() => {
     loadLesson();
@@ -40,6 +46,19 @@ export default function QuizPage() {
       .single();
     setLesson(data);
     setLoading(false);
+  };
+
+  const handleNarrate = (text: string) => {
+    stop();
+    speak(text);
+  };
+
+  const handleNarrateQuestion = () => {
+    const exercise = lesson?.exercises[currentQuestion];
+    if (exercise) {
+      const fullText = `${exercise.question}`;
+      handleNarrate(fullText);
+    }
   };
 
   const handleAnswer = (answer: string) => {
@@ -115,16 +134,36 @@ export default function QuizPage() {
   const maxPoints = lesson.exercises.reduce((sum, ex) => sum + ex.points, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gradient-to-b from-yellow-100 to-orange-50">
+      <nav className="bg-gradient-to-r from-yellow-500 to-orange-500 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
+          <div className="flex items-center justify-between h-16">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center text-gray-600 hover:text-gray-900"
+              className="flex items-center text-white hover:text-yellow-50 transition-colors font-medium"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
               Retour
+            </button>
+            <button
+              onClick={handleNarrateQuestion}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all transform hover:scale-105 ${
+                isPlaying || isPaused
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : 'bg-white text-yellow-600 hover:shadow-lg'
+              }`}
+            >
+              {isPlaying || isPaused ? (
+                <>
+                  <VolumeX className="w-5 h-5" />
+                  Arrêter
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-5 h-5" />
+                  Écouter
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -132,13 +171,15 @@ export default function QuizPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {showResults ? (
-          <div className="bg-white rounded-xl shadow-md p-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 border-t-4 border-yellow-400">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">Résultats du quiz</h1>
-              <div className="text-5xl font-bold text-blue-600 mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent mb-4">
+                Résultats du quiz
+              </h1>
+              <div className="text-6xl font-bold bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent mb-2">
                 {score}/{maxPoints}
               </div>
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-600 text-lg font-semibold">
                 {Math.round((score / maxPoints) * 100)}% de réussite
               </p>
             </div>
@@ -149,25 +190,32 @@ export default function QuizPage() {
                 const isCorrect = userAnswer?.toLowerCase() === exercise.correct_answer.toLowerCase();
 
                 return (
-                  <div key={index} className="border border-gray-200 rounded-lg p-6">
+                  <div
+                    key={index}
+                    className={`border-2 rounded-xl p-6 transition-all ${
+                      isCorrect
+                        ? 'border-emerald-300 bg-emerald-50'
+                        : 'border-red-300 bg-red-50'
+                    }`}
+                  >
                     <div className="flex items-start gap-4">
                       {isCorrect ? (
-                        <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
+                        <CheckCircle className="w-7 h-7 text-emerald-600 flex-shrink-0 mt-1" />
                       ) : (
-                        <XCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />
+                        <XCircle className="w-7 h-7 text-red-600 flex-shrink-0 mt-1" />
                       )}
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 mb-2">
+                        <h3 className="font-bold text-gray-900 mb-3 text-lg">
                           Question {index + 1}: {exercise.question}
                         </h3>
-                        <p className="text-gray-600 mb-2">
-                          Votre réponse: <span className="font-medium">{userAnswer || '(pas de réponse)'}</span>
+                        <p className="text-gray-700 mb-2">
+                          Votre réponse: <span className="font-semibold">{userAnswer || '(pas de réponse)'}</span>
                         </p>
-                        <p className="text-gray-600 mb-2">
-                          Bonne réponse: <span className="font-medium text-green-600">{exercise.correct_answer}</span>
+                        <p className="text-gray-700 mb-3">
+                          Bonne réponse: <span className="font-semibold text-emerald-700">{exercise.correct_answer}</span>
                         </p>
-                        <p className="text-gray-700 bg-blue-50 p-3 rounded">
-                          <span className="font-semibold">Explication:</span> {exercise.explanation}
+                        <p className="text-gray-800 bg-gradient-to-r from-blue-100 to-cyan-100 p-4 rounded-lg border-l-4 border-blue-500">
+                          <span className="font-bold text-blue-700">Explication:</span> {exercise.explanation}
                         </p>
                       </div>
                     </div>
@@ -179,30 +227,32 @@ export default function QuizPage() {
             <div className="mt-8 flex gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className="flex-1 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-gray-500 to-slate-600 text-white rounded-full hover:from-gray-600 hover:to-slate-700 font-bold transition-all transform hover:scale-105"
               >
                 Retour à la leçon
               </button>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-full hover:from-sky-600 hover:to-cyan-600 font-bold transition-all transform hover:scale-105"
               >
                 Tableau de bord
               </button>
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-md p-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 border-t-4 border-yellow-400">
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">Quiz: {lesson.title}</h1>
-                <span className="text-gray-600">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+                  Quiz: {lesson.title}
+                </h1>
+                <span className="text-lg font-bold text-yellow-600 bg-yellow-50 px-4 py-2 rounded-full">
                   Question {currentQuestion + 1} / {lesson.exercises.length}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all"
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 h-3 rounded-full transition-all duration-500"
                   style={{
                     width: `${((currentQuestion + 1) / lesson.exercises.length) * 100}%`,
                   }}
@@ -210,8 +260,8 @@ export default function QuizPage() {
               </div>
             </div>
 
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            <div className="mb-8 p-6 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 {currentExercise.question}
               </h2>
 
@@ -221,10 +271,10 @@ export default function QuizPage() {
                     <button
                       key={index}
                       onClick={() => handleAnswer(option)}
-                      className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
+                      className={`w-full p-4 text-left rounded-lg border-2 font-semibold transition-all transform hover:scale-105 ${
                         answers[currentQuestion] === option
-                          ? 'border-blue-600 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-emerald-500 bg-emerald-100 text-gray-900'
+                          : 'border-gray-300 bg-white hover:border-emerald-300 hover:bg-emerald-50 text-gray-700'
                       }`}
                     >
                       {option}
@@ -239,10 +289,12 @@ export default function QuizPage() {
                     <button
                       key={option}
                       onClick={() => handleAnswer(option)}
-                      className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
+                      className={`w-full p-4 text-left rounded-lg border-2 font-semibold transition-all transform hover:scale-105 ${
                         answers[currentQuestion] === option
-                          ? 'border-blue-600 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? option === 'true'
+                            ? 'border-emerald-500 bg-emerald-100 text-gray-900'
+                            : 'border-red-500 bg-red-100 text-gray-900'
+                          : 'border-gray-300 bg-white hover:border-emerald-300 hover:bg-emerald-50 text-gray-700'
                       }`}
                     >
                       {option === 'true' ? 'Vrai' : 'Faux'}
@@ -257,16 +309,16 @@ export default function QuizPage() {
                   value={answers[currentQuestion] || ''}
                   onChange={(e) => handleAnswer(e.target.value)}
                   placeholder="Entrez votre réponse..."
-                  className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-blue-600 focus:outline-none"
+                  className="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 text-lg font-medium transition-all"
                 />
               )}
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 mt-8 pt-6 border-t-2 border-yellow-200">
               <button
                 onClick={handlePrevious}
                 disabled={currentQuestion === 0}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="px-6 py-3 bg-gradient-to-r from-gray-400 to-slate-500 text-white rounded-full hover:from-gray-500 hover:to-slate-600 disabled:opacity-50 disabled:cursor-not-allowed font-bold transition-all transform hover:scale-105"
               >
                 Précédent
               </button>
@@ -275,14 +327,14 @@ export default function QuizPage() {
                 <button
                   onClick={handleSubmit}
                   disabled={Object.keys(answers).length !== lesson.exercises.length}
-                  className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg transition-all transform hover:scale-105"
                 >
                   Soumettre le quiz
                 </button>
               ) : (
                 <button
                   onClick={handleNext}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-full hover:from-yellow-600 hover:to-orange-600 font-bold text-lg transition-all transform hover:scale-105"
                 >
                   Suivant
                 </button>
