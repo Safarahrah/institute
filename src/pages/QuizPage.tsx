@@ -56,7 +56,14 @@ export default function QuizPage() {
   const handleNarrateQuestion = () => {
     const exercise = lesson?.exercises[currentQuestion];
     if (exercise) {
-      const fullText = `${exercise.question}`;
+      let fullText = exercise.question;
+
+      if (exercise.type === 'multiple_choice' && exercise.options) {
+        fullText += '. Options: ' + exercise.options.join(', ');
+      } else if (exercise.type === 'true_false') {
+        fullText += '. Options: Vrai ou Faux';
+      }
+
       handleNarrate(fullText);
     }
   };

@@ -1,68 +1,45 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { supabase } from './lib/supabase';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import HomePage from './pages/HomePage';
 import AuthPage from './pages/AuthPage';
 import StudentDashboard from './pages/StudentDashboard';
 import TutorDashboard from './pages/TutorDashboard';
 import SubjectLessons from './pages/SubjectLessons';
 import LessonView from './pages/LessonView';
 import QuizPage from './pages/QuizPage';
-import { User } from '@supabase/supabase-js';
 
 function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
   return (
-    <Router>
-      <Routes>
-        <Route path="/auth" element={!user ? <AuthPage /> : <Navigate to="/dashboard" />} />
-        <Route
-          path="/dashboard"
-          element={user ? <StudentDashboard /> : <Navigate to="/auth" />}
-        />
-        <Route
-          path="/tutor"
-          element={user ? <TutorDashboard /> : <Navigate to="/auth" />}
-        />
-        <Route
-          path="/subject/:subjectId"
-          element={user ? <SubjectLessons /> : <Navigate to="/auth" />}
-        />
-        <Route
-          path="/lesson/:lessonId"
-          element={user ? <LessonView /> : <Navigate to="/auth" />}
-        />
-        <Route
-          path="/quiz/:lessonId"
-          element={user ? <QuizPage /> : <Navigate to="/auth" />}
-        />
-        <Route path="/" element={<Navigate to={user ? "/dashboard" : "/auth"} />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route
+            path="/dashboard"
+            element={<ProtectedRoute element={<StudentDashboard />} requiredRole="student" />}
+          />
+          <Route
+            path="/tutor"
+            element={<ProtectedRoute element={<TutorDashboard />} requiredRole="tutor" />}
+          />
+          <Route
+            path="/subject/:subjectId"
+            element={<ProtectedRoute element={<SubjectLessons />} />}
+          />
+          <Route
+            path="/lesson/:lessonId"
+            element={<ProtectedRoute element={<LessonView />} />}
+          />
+          <Route
+            path="/quiz/:lessonId"
+            element={<ProtectedRoute element={<QuizPage />} />}
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
