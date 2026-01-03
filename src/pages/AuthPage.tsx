@@ -9,9 +9,6 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'student' | 'tutor'>(
-    (searchParams.get('role') as 'student' | 'tutor') || 'student'
-  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -36,7 +33,7 @@ export default function AuthPage() {
       if (isLogin) {
         await signIn(email, password);
       } else {
-        await signUp(email, password, fullName, role);
+        await signUp(email, password, fullName);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
@@ -120,32 +117,6 @@ export default function AuthPage() {
                 />
               </div>
 
-              {!isLogin && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-200 mb-2">
-                    Je suis un(e)...
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { value: 'student', label: 'Élève' },
-                      { value: 'tutor', label: 'Tuteur' },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setRole(option.value as 'student' | 'tutor')}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          role === option.value
-                            ? 'bg-gradient-to-r from-sky-500 to-emerald-500 text-white shadow-lg'
-                            : 'bg-white/10 text-gray-200 border border-white/20 hover:border-white/40'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <button
                 type="submit"
