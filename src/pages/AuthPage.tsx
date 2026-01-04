@@ -16,11 +16,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (profile) {
-      if (profile.role === 'tutor') {
-        navigate('/tutor');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     }
   }, [profile, navigate]);
 

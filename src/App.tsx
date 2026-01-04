@@ -4,7 +4,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import AuthPage from './pages/AuthPage';
 import StudentDashboard from './pages/StudentDashboard';
-import TutorDashboard from './pages/TutorDashboard';
 import SubjectLessons from './pages/SubjectLessons';
 import LessonView from './pages/LessonView';
 import QuizPage from './pages/QuizPage';
@@ -18,11 +17,7 @@ function App() {
           <Route path="/auth" element={<AuthPage />} />
           <Route
             path="/dashboard"
-            element={<ProtectedRoute element={<StudentDashboard />} requiredRole="student" />}
-          />
-          <Route
-            path="/tutor"
-            element={<ProtectedRoute element={<TutorDashboard />} requiredRole="tutor" />}
+            element={<ProtectedRoute element={<StudentDashboard />} />}
           />
           <Route
             path="/subject/:subjectId"
